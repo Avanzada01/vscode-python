@@ -44,6 +44,7 @@ suite('Data Science - Native Editor Provider', () => {
     });
 
     function createNotebookProvider() {
+        const dummyEvent = new EventEmitter<void>();
         editor = typemoq.Mock.ofType<INotebookEditor>();
         when(configService.getSettings(anything())).thenReturn({ datascience: { useNotebookEditor: true } } as any);
         editor.setup(e => e.closed).returns(() => new EventEmitter<INotebookEditor>().event);
@@ -61,16 +62,17 @@ suite('Data Science - Native Editor Provider', () => {
         when(svcContainer.get<INotebookStorage>(INotebookStorage)).thenReturn(storage.object);
         customEditorService.setup(e => (e as any).then).returns(() => undefined);
         customEditorService
-            .setup(c =>
-                c.registerWebviewCustomEditorProvider(typemoq.It.isAny(), typemoq.It.isAny(), typemoq.It.isAny())
-            )
+            .setup(c => c.registerCustomEditorProvider(typemoq.It.isAny(), typemoq.It.isAny(), typemoq.It.isAny()))
             .returns((_a1, _a2, _a3) => {
                 return { dispose: noop };
             });
         customEditorService
             .setup(c => c.openEditor(typemoq.It.isAny()))
             .returns(async f => {
-                return registeredProvider.resolveWebviewEditor(f, panel.object);
+                return registeredProvider.resolveCustomEditor(
+                    { uri: f, viewType: 'f', onDidDispose: dummyEvent.event },
+                    panel.object
+                );
             });
 
         editor
